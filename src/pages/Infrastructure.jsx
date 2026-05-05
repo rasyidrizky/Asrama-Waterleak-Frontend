@@ -49,10 +49,8 @@ const Infrastructure = () => {
     <div className="flex h-screen bg-[#F5F6F8] font-sans tracking-wide overflow-hidden">
       <Sidebar />
 
-      {/* AREA KONTEN UTAMA */}
       <main className="flex-1 p-10 overflow-y-auto">
         
-        {/* 1. HEADER */}
         <header className="mb-10 flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Manajemen Infrastruktur</h1>
@@ -60,7 +58,6 @@ const Infrastructure = () => {
           </div>
         </header>
         
-        {/* 2. TIGA KARTU RINGKASAN */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white p-7 rounded-[1.5rem] shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)]">
             <div className="flex items-center justify-between mb-4">
@@ -93,9 +90,7 @@ const Infrastructure = () => {
           </div>
         </div>
 
-        {/* 3. BARIS FILTER & PENCARIAN */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          {/* Bagian Kiri: Tombol Status (Pill Style) */}
           <div className="flex items-center bg-[#E2E8F0]/50 p-1.5 rounded-full">
             <button 
               onClick={() => setFilterStatus('Semua')}
@@ -117,7 +112,6 @@ const Infrastructure = () => {
             </button>
           </div>
 
-          {/* Bagian Kanan: Search Bar */}
           <div className="relative w-full md:w-80">
             <input 
               type="text" 
@@ -130,7 +124,6 @@ const Infrastructure = () => {
           </div>
         </div>
 
-        {/* 4. TABEL DATA INVENTARIS */}
         <div className="bg-white rounded-[1.5rem] shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] overflow-hidden">
           <div className="overflow-x-auto p-4">
             <table className="w-full text-left border-collapse">
@@ -190,7 +183,6 @@ const Infrastructure = () => {
           </div>
         </div>
 
-        {/* 5. PAGINASI (Pill Style) */}
         <div className="flex justify-center items-center gap-2 mt-8 pb-8">
           <button className="w-10 h-10 flex items-center justify-center bg-white text-slate-400 rounded-full hover:bg-slate-50 hover:text-slate-600 transition shadow-[0_2px_10px_-3px_rgba(0,0,0,0.02)]">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>

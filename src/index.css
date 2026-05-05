@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Opsional: Warna latar belakang dashboard yang nyaman di mata */
 body {
   background-color: #F8F9FA;
 }

@@ -6,13 +6,11 @@ const AuditLog = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // State untuk Advanced Filter
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [locationFilter, setLocationFilter] = useState('Semua');
   const [statusFilter, setStatusFilter] = useState('Semua');
 
-  // Menarik data historis dari backend
   const fetchLogs = async () => {
     try {
       const response = await api.get('/web/logs');
@@ -29,7 +27,6 @@ const AuditLog = () => {
     fetchLogs();
   }, []);
 
-  // --- KALKULASI METRIK (Murni dari Database) ---
   const currentMonthLogs = logs.filter(log => {
     const logDate = new Date(log.created_at || log.waktu_mulai);
     const now = new Date();
@@ -40,7 +37,6 @@ const AuditLog = () => {
   const estimasiAirTerbuang = currentMonthLogs.reduce((sum, log) => sum + (Number(log.estimasi_volume) || 0), 0);
   const totalDurasi = currentMonthLogs.reduce((sum, log) => sum + (Number(log.durasi_menit) || 0), 0);
   const rataRataDurasi = totalKejadian > 0 ? (totalDurasi / totalKejadian).toFixed(1) : 0;
-  // ----------------------------------------------
 
   const uniqueLocations = Array.from(new Set(logs.map(log => log.location_block).filter(Boolean)));
 
@@ -90,7 +86,6 @@ const AuditLog = () => {
       <Sidebar />
       
       <main className="flex-1 p-10 overflow-y-auto">
-        {/* HEADER HALAMAN */}
         <header className="mb-10 flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Log Riwayat & Audit Kebocoran</h1>
@@ -98,7 +93,6 @@ const AuditLog = () => {
           </div>
         </header>
 
-        {/* BLOK RINGKASAN (NRW Tracker) - Modern SaaS Style */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           <div className="bg-white p-7 rounded-[1.5rem] shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)]">
             <div className="flex items-center gap-3 mb-4">
@@ -140,13 +134,10 @@ const AuditLog = () => {
           </div>
         </div>
 
-        {/* CONTAINER TABEL UTAMA */}
         <div className="bg-white rounded-[1.5rem] shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] overflow-hidden">
           
-          {/* PARAMETER PENYARINGAN LANJUTAN (Filter) */}
           <div className="p-6 border-b border-slate-50 flex flex-wrap gap-4 items-center justify-between bg-white">
             <div className="flex flex-wrap gap-4">
-              {/* Filter Tanggal */}
               <div className="flex items-center border border-slate-200 rounded-full overflow-hidden bg-slate-50 px-2 py-1 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
                 <svg className="w-4 h-4 text-slate-400 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                 <input 
@@ -164,7 +155,6 @@ const AuditLog = () => {
                 />
               </div>
               
-              {/* Filter Lokasi */}
               <div className="relative">
                 <select 
                   value={locationFilter}
@@ -179,7 +169,6 @@ const AuditLog = () => {
                 <svg className="w-4 h-4 text-slate-400 absolute right-4 top-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
               </div>
               
-              {/* Filter Status */}
               <div className="relative">
                 <select 
                   value={statusFilter}
@@ -195,7 +184,6 @@ const AuditLog = () => {
               </div>
             </div>
             
-            {/* Tombol Ekspor */}
             <button 
               onClick={handleExportCSV}
               className="px-5 py-2.5 bg-blue-50 text-blue-600 hover:bg-blue-100 text-sm font-bold rounded-full transition-colors flex items-center gap-2"
@@ -205,7 +193,6 @@ const AuditLog = () => {
             </button>
           </div>
 
-          {/* TABEL REKAM JEJAK */}
           <div className="overflow-x-auto p-4">
             <table className="w-full text-left border-collapse">
               <thead>

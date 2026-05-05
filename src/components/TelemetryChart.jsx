@@ -30,7 +30,6 @@ const TelemetryChart = ({ data, viewMode }) => {
     nodeKeys = ['debit']; 
   }
 
-  // Palet warna yang sedikit lebih pastel/modern menyesuaikan referensi
   const colors = ['#4379F2', '#34D399', '#FBBF24', '#F87171', '#A78BFA', '#F472B6'];
 
   return (
@@ -38,7 +37,6 @@ const TelemetryChart = ({ data, viewMode }) => {
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
           
-          {/* Definisi Gradasi Warna untuk Area Bawah Grafik */}
           <defs>
             {nodeKeys.map((key, index) => (
               <linearGradient key={`color-${key}`} id={`color-${key}`} x1="0" y1="0" x2="0" y2="1">
@@ -48,7 +46,6 @@ const TelemetryChart = ({ data, viewMode }) => {
             ))}
           </defs>
 
-          {/* Grid dibikin sangat samar hanya garis horizontal */}
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
           
           <XAxis 
@@ -67,7 +64,6 @@ const TelemetryChart = ({ data, viewMode }) => {
             unit="L" 
           />
           
-          {/* Tooltip Gelap ala Referensi UI */}
           <Tooltip 
             contentStyle={{ 
               backgroundColor: '#0F172A', 
@@ -90,7 +86,7 @@ const TelemetryChart = ({ data, viewMode }) => {
               strokeWidth={3}
               fillOpacity={1}
               fill={`url(#color-${key})`}
-              dot={{ r: 0 }} // Menghilangkan titik agar mulus seperti referensi
+              dot={{ r: 0 }}
               activeDot={{ r: 6, strokeWidth: 0, fill: colors[index % colors.length] }}
               isAnimationActive={false}
             />

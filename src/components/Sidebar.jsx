@@ -12,10 +12,8 @@ const Sidebar = () => {
   };
 
   return (
-    // PERBAIKAN: Mengganti 'min-h-screen' menjadi 'h-screen' dan menambahkan 'sticky top-0'
     <aside className="w-64 bg-white border-r border-slate-100 h-screen sticky top-0 flex flex-col transition-all z-20 font-sans">
       
-      {/* Header / Logo */}
       <div className="p-8 pb-10">
         <h2 className="text-2xl font-extrabold text-slate-800 flex items-center gap-3 tracking-tight">
           <svg className="w-7 h-7 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
@@ -25,8 +23,6 @@ const Sidebar = () => {
         </h2>
       </div>
 
-      {/* Menu Navigasi */}
-      {/* PERBAIKAN: Menambahkan 'overflow-y-auto' agar menu bisa digulir di layar laptop kecil tanpa menyembunyikan tombol Keluar */}
       <nav className="flex-1 px-5 space-y-1 overflow-y-auto">
         <Link 
           to="/" 
@@ -71,7 +67,6 @@ const Sidebar = () => {
         </Link>
       </nav>
 
-      {/* Footer / Logout */}
       <div className="p-6 mb-2">
         <button className="w-full flex items-center gap-4 px-4 py-3 text-slate-400 hover:text-slate-600 font-medium transition-colors mb-2">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

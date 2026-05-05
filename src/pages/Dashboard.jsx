@@ -67,7 +67,6 @@ const Dashboard = () => {
   const offlineNodes = nodes.filter(n => n.status === 'OFFLINE').length;
 
   return (
-    // Latar belakang diubah menjadi abu-abu super lembut menyerupai referensi
     <div className="flex min-h-screen bg-[#F5F6F8] font-sans tracking-wide">
       <Sidebar />
 
@@ -79,7 +78,6 @@ const Dashboard = () => {
           </div>
         </header>
 
-        {/* 1. KARTU STATUS (Tanpa border kaku, shadow lembut, border-radius besar) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           <div className="bg-white p-7 rounded-[1.5rem] shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)]">
             <div className="flex items-center justify-between mb-4">
@@ -112,7 +110,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* 2. AREA GRAFIK (Style bersih, tombol mode diubah ke model pill) */}
         <div className="bg-white p-8 rounded-[1.5rem] shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] mb-10">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div>
@@ -172,7 +169,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* 3. MATRIKS INVENTARIS NODE (Tabel minimalis tanpa garis vertikal) */}
         <div className="bg-white rounded-[1.5rem] shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] overflow-hidden">
           <div className="p-8 border-b border-slate-50">
             <h3 className="text-xl font-bold text-slate-800">Inventaris Infrastruktur</h3>
