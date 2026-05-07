@@ -28,22 +28,22 @@ const Infrastructure = () => {
 
   const filteredNodes = nodes.filter(node => {
     const matchesSearch = 
-      node.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      node.location_block.toLowerCase().includes(searchQuery.toLowerCase());
+      node.node_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      node.location_block?.toLowerCase().includes(searchQuery.toLowerCase());
     
     let matchesFilter = true;
     if (filterStatus === 'Aktif') {
-      matchesFilter = node.status === 'NORMAL';
+      matchesFilter = node.is_online === true;
     } else if (filterStatus === 'Offline') {
-      matchesFilter = node.status === 'OFFLINE' || node.status === 'BAHAYA';
+      matchesFilter = node.is_online === false;
     }
 
     return matchesSearch && matchesFilter;
   });
 
   const totalNodes = nodes.length;
-  const activeNodes = nodes.filter(n => n.status === 'NORMAL').length;
-  const issueNodes = nodes.filter(n => n.status === 'BAHAYA' || n.status === 'OFFLINE').length;
+  const activeNodes = nodes.filter(n => n.is_online === true).length;
+  const issueNodes = nodes.filter(n => n.is_online === false).length;
 
   return (
     <div className="flex h-screen bg-[#F5F6F8] font-sans tracking-wide overflow-hidden">
@@ -81,7 +81,7 @@ const Infrastructure = () => {
 
           <div className={`p-7 rounded-[1.5rem] shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] transition-all ${issueNodes > 0 ? 'bg-red-50/50' : 'bg-white'}`}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className={`${issueNodes > 0 ? 'text-red-500' : 'text-slate-400'} text-sm font-semibold`}>Perlu Perhatian</h3>
+              <h3 className={`${issueNodes > 0 ? 'text-red-500' : 'text-slate-400'} text-sm font-semibold`}>Perlu Perhatian (Offline)</h3>
               <div className={`w-10 h-10 rounded-full flex items-center justify-center ${issueNodes > 0 ? 'bg-red-100 text-red-500' : 'bg-slate-50 text-slate-400'}`}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
               </div>
@@ -131,41 +131,45 @@ const Infrastructure = () => {
                 <tr className="text-slate-400 text-xs font-bold uppercase tracking-wider">
                   <th className="px-6 py-4 border-b border-slate-50">ID Perangkat</th>
                   <th className="px-6 py-4 border-b border-slate-50">Lokasi</th>
-                  <th className="px-6 py-4 border-b border-slate-50">Tipe</th>
+                  <th className="px-6 py-4 border-b border-slate-50">Diameter Pipa</th>
                   <th className="px-6 py-4 border-b border-slate-50">Sinkronisasi</th>
-                  <th className="px-6 py-4 border-b border-slate-50">Latensi</th>
-                  <th className="px-6 py-4 border-b border-slate-50 text-right">Status</th>
+                  <th className="px-6 py-4 border-b border-slate-50 text-right">Status Jaringan</th>
                 </tr>
               </thead>
               <tbody className="text-slate-600 font-medium text-sm">
                 {loading ? (
                   <tr>
-                    <td colSpan="6" className="p-10 text-center text-slate-400">Menarik data dari server...</td>
+                    <td colSpan="5" className="p-10 text-center text-slate-400">Menarik data dari server...</td>
                   </tr>
                 ) : filteredNodes.length > 0 ? (
                   filteredNodes.map((node) => (
-                    <tr key={node.id} className="hover:bg-slate-50 transition-colors group rounded-2xl cursor-default">
+                    // PERUBAHAN: Gunakan node_id sebagai key
+                    <tr key={node.node_id} className="hover:bg-slate-50 transition-colors group rounded-2xl cursor-default">
                       <td className="px-6 py-5 border-b border-slate-50">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
                             <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path></svg>
                           </div>
-                          <span className="font-mono text-slate-500">{node.id.substring(0,8)}...</span>
+                          {/* PERUBAHAN: Gunakan optional chaining untuk substring */}
+                          <span className="font-mono text-slate-500 uppercase">{node.node_id?.substring(0,8) || "N/A"}</span>
                         </div>
                       </td>
                       <td className="px-6 py-5 border-b border-slate-50 text-slate-800 font-bold">{node.location_block}</td>
-                      <td className="px-6 py-5 border-b border-slate-50">{node.device_type || 'Flowmeter'}</td>
+                      
+                      {/* PERUBAHAN: Menampilkan diameter pipa dari database */}
+                      <td className="px-6 py-5 border-b border-slate-50">
+                        {node.pipe_diameter ? `${node.pipe_diameter} inch` : <span className="text-slate-300">-</span>}
+                      </td>
+                      
                       <td className="px-6 py-5 border-b border-slate-50 text-slate-400">
                         {node.last_sync ? new Date(node.last_sync).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit', second:'2-digit'}) : '-'}
                       </td>
-                      <td className="px-6 py-5 border-b border-slate-50 font-mono text-xs">
-                        {node.latency ? <span className="bg-slate-100 text-slate-500 px-2 py-1 rounded-md">{node.latency} ms</span> : <span className="text-slate-300">-</span>}
-                      </td>
+                      
                       <td className="px-6 py-5 border-b border-slate-50 text-right">
                         <div className="flex justify-end">
-                          <span className={`px-4 py-1.5 text-xs font-bold rounded-full flex items-center gap-1.5 w-max ${node.status === 'NORMAL' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${node.status === 'NORMAL' ? 'bg-emerald-500' : 'bg-red-500 animate-pulse'}`}></span>
-                            {node.status}
+                          <span className={`px-4 py-1.5 text-xs font-bold rounded-full flex items-center gap-1.5 w-max ${node.is_online ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${node.is_online ? 'bg-emerald-500' : 'bg-red-500 animate-pulse'}`}></span>
+                            {node.is_online ? 'Online' : 'Offline'}
                           </span>
                         </div>
                       </td>
@@ -173,7 +177,7 @@ const Infrastructure = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="6" className="p-10 text-center text-slate-400">
+                    <td colSpan="5" className="p-10 text-center text-slate-400">
                       Tidak ada perangkat yang cocok dengan filter atau pencarian Anda.
                     </td>
                   </tr>

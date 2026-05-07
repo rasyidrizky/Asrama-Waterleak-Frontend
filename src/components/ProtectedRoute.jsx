@@ -8,29 +8,34 @@ const ProtectedRoute = ({ children, allowedRole }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fungsi untuk cek sesi dan peran secara bersamaan
     const checkSessionAndRole = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
 
-      if (session) {
-        // Ambil peran (role) dari tabel users di Supabase
-        const { data: userProfile, error } = await supabase
-          .from('users')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .single();
+        setSession(session);
 
-        if (!error && userProfile) {
-          setRole(userProfile.role);
+        if (session) {
+          const { data: userProfile, error: profileError } = await supabase
+            .from('users')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .single();
+
+          if (!profileError && userProfile) {
+            setRole(userProfile.role);
+          }
         }
+      } catch (error) {
+        console.error("Pengecekan otorisasi terganggu:", error.message);
+        setSession(null); 
+      } finally {
+        setLoading(false); 
       }
-      setLoading(false);
     };
 
     checkSessionAndRole();
 
-    // Listener jika ada perubahan status auth (login/logout)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       if (session) {
@@ -49,7 +54,6 @@ const ProtectedRoute = ({ children, allowedRole }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Tampilan loading UI saat mengecek sesi ke server
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#F8F9FA]">
@@ -58,22 +62,37 @@ const ProtectedRoute = ({ children, allowedRole }) => {
     );
   }
 
-  // Jika belum login, tendang ke halaman login
   if (!session) {
     return <Navigate to="/login" replace />;
   }
 
-  // Jika halaman memiliki proteksi role, cek kecocokan role
   if (allowedRole && role !== allowedRole) {
-    // Arahkan ke "rumahnya" masing-masing jika salah masuk kamar
+    
     if (role === 'Pengelola') {
       return <Navigate to="/executive" replace />;
     } else if (role === 'Teknisi') {
       return <Navigate to="/" replace />;
+    } 
+    
+    else {
+      return (
+        <div className="flex flex-col h-screen items-center justify-center bg-[#F8F9FA] text-center px-4">
+           <h1 className="text-3xl font-bold text-red-600 mb-2">Akses Ditolak (403)</h1>
+           <p className="text-gray-600 mb-6 max-w-md">
+             Akun Anda berhasil login, tetapi belum didaftarkan ke dalam sistem otorisasi asrama. 
+             Silakan hubungi Administrator untuk meminta hak akses.
+           </p>
+           <button 
+             onClick={() => supabase.auth.signOut()} 
+             className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition"
+           >
+             Kembali ke Login
+           </button>
+        </div>
+      );
     }
   }
 
-  // Lolos semua pengecekan, tampilkan halaman
   return children;
 };
 

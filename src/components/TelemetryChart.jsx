@@ -3,7 +3,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend 
 } from 'recharts';
 
-const TelemetryChart = ({ data, viewMode }) => {
+const TelemetryChart = ({ data, viewMode, nodesData = [] }) => {
   const chartData = data.map(item => {
     const timeString = item.timeISO 
       ? new Date(item.timeISO).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
@@ -20,6 +20,7 @@ const TelemetryChart = ({ data, viewMode }) => {
     const keysSet = new Set();
     chartData.forEach(item => {
       Object.keys(item).forEach(k => {
+        // Abaikan properti waktu dan debit (jika terbawa)
         if (k !== 'time' && k !== 'timeISO' && k !== 'displayTime' && k !== 'debit') {
           keysSet.add(k);
         }
@@ -29,6 +30,12 @@ const TelemetryChart = ({ data, viewMode }) => {
   } else {
     nodeKeys = ['debit']; 
   }
+
+  const getLocationName = (uuid) => {
+    if (viewMode !== 'semua') return 'Laju Aliran';
+    const foundNode = nodesData.find(n => n.node_id === uuid);
+    return foundNode ? foundNode.location_block : uuid.substring(0, 8);
+  };
 
   const colors = ['#4379F2', '#34D399', '#FBBF24', '#F87171', '#A78BFA', '#F472B6'];
 
@@ -61,7 +68,7 @@ const TelemetryChart = ({ data, viewMode }) => {
             fontSize={11} 
             tickLine={false} 
             axisLine={false} 
-            unit="L" 
+            unit=" L/m" 
           />
           
           <Tooltip 
@@ -72,16 +79,24 @@ const TelemetryChart = ({ data, viewMode }) => {
               color: '#F8FAFC',
               boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
             }}
-            itemStyle={{ color: '#E2E8F0' }}
+            itemStyle={{ color: '#E2E8F0', fontSize: '13px', fontWeight: '500' }}
+            labelStyle={{ color: '#94A3B8', fontSize: '12px', marginBottom: '4px' }}
           />
-          <Legend verticalAlign="top" align="right" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748B' }}/>
+          
+          <Legend 
+            verticalAlign="top" 
+            align="right" 
+            height={36} 
+            iconType="circle" 
+            wrapperStyle={{ fontSize: '12px', color: '#64748B' }}
+          />
           
           {nodeKeys.map((key, index) => (
             <Area
               key={key}
               type="monotone"
               dataKey={key}
-              name={viewMode === 'semua' ? `Blok: ${key}` : 'Laju Aliran'}
+              name={getLocationName(key)}
               stroke={colors[index % colors.length]}
               strokeWidth={3}
               fillOpacity={1}

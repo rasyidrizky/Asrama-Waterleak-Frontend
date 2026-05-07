@@ -17,7 +17,7 @@ const Dashboard = () => {
       setNodes(nodesData);
       
       if (!selectedNode && nodesData.length > 0) {
-        setSelectedNode(nodesData[0].id);
+        setSelectedNode(nodesData[0].node_id);
       }
     } catch (error) {
       console.error("Gagal menarik data inventaris node:", error);
@@ -49,13 +49,13 @@ const Dashboard = () => {
     if (selectedNode) fetchTelemetryData(selectedNode);
   }, [selectedNode, viewMode]); 
 
-  const handleResolveIncident = async (nodeId) => {
+  const handleResolveIncident = async (anomalyId) => {
     const isConfirmed = window.confirm("Apakah insiden perbaikan sudah diselesaikan di lapangan?");
     if (!isConfirmed) return;
 
     try {
-      await api.put(`/web/resolve/${nodeId}`);
-      alert("Status Node kembali NORMAL. Log insiden ditutup.");
+      await api.put(`/web/resolve/${anomalyId}`, { action_description: "Diselesaikan via Dashboard" });
+      alert("Status dikembalikan menjadi NORMAL. Log insiden ditutup.");
       fetchNodes(); 
     } catch (error) {
       alert("Gagal memperbarui status. Periksa koneksi.");
@@ -63,8 +63,8 @@ const Dashboard = () => {
   };
 
   const totalNodes = nodes.length;
-  const anomalyNodes = nodes.filter(n => n.status === 'BAHAYA').length;
-  const offlineNodes = nodes.filter(n => n.status === 'OFFLINE').length;
+  const anomalyNodes = nodes.filter(n => n.has_anomaly || n.status === 'BAHAYA').length; 
+  const offlineNodes = nodes.filter(n => n.is_online === false).length;
 
   return (
     <div className="flex min-h-screen bg-[#F5F6F8] font-sans tracking-wide">
@@ -86,7 +86,7 @@ const Dashboard = () => {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
               </div>
             </div>
-            <p className="text-4xl font-bold text-slate-800">{totalNodes}</p>
+            <p className="text-4xl font-bold text-slate-800">{totalNodes - offlineNodes}</p>
           </div>
           
           <div className={`p-7 rounded-[1.5rem] shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] transition-all ${anomalyNodes > 0 ? 'bg-red-50/50' : 'bg-white'}`}>
@@ -116,7 +116,7 @@ const Dashboard = () => {
               <h3 className="text-xl font-bold text-slate-800 mb-1">Performa Aliran Air</h3>
               <p className="text-sm text-slate-400 font-medium">
                 {viewMode === 'semua' ? 'Memantau seluruh infrastruktur' : (
-                  <>Fokus pemantauan: <span className="text-slate-700">{nodes.find(n => n.id === selectedNode)?.location_block || selectedNode}</span></>
+                  <>Fokus pemantauan: <span className="text-slate-700">{nodes.find(n => n.node_id === selectedNode)?.location_block || selectedNode}</span></>
                 )}
               </p>
             </div>
@@ -150,7 +150,7 @@ const Dashboard = () => {
                 className="bg-slate-50 border-none text-slate-700 text-sm font-medium rounded-full focus:ring-2 focus:ring-blue-100 block px-4 py-2 cursor-pointer outline-none"
               >
                 {nodes.map(node => (
-                  <option key={node.id} value={node.id}>
+                  <option key={node.node_id} value={node.node_id}>
                     {node.location_block}
                   </option>
                 ))}
@@ -162,7 +162,7 @@ const Dashboard = () => {
             {loading ? (
               <div className="h-full flex items-center justify-center text-slate-400 font-medium">Menarik data analitik...</div>
             ) : chartData.length > 0 ? (
-              <TelemetryChart data={chartData} viewMode={viewMode} />
+              <TelemetryChart data={chartData} viewMode={viewMode} nodesData={nodes} />
             ) : (
               <div className="h-full flex items-center justify-center text-slate-400 font-medium">Belum ada rekaman untuk perangkat ini.</div>
             )}
@@ -177,52 +177,66 @@ const Dashboard = () => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="text-slate-400 text-xs font-bold uppercase tracking-wider">
-                  <th className="px-6 py-4 border-b border-slate-50">Perangkat</th>
+                  <th className="px-6 py-4 border-b border-slate-50">ID Perangkat</th>
                   <th className="px-6 py-4 border-b border-slate-50">Lokasi Blok</th>
                   <th className="px-6 py-4 border-b border-slate-50">Sinkronisasi</th>
                   <th className="px-6 py-4 border-b border-slate-50 text-right">Status</th>
                 </tr>
               </thead>
               <tbody className="text-slate-600 font-medium text-sm">
-                {nodes.map((node) => (
-                  <tr 
-                    key={node.id} 
-                    onClick={() => {
-                      setViewMode('spesifik');
-                      setSelectedNode(node.id);
-                    }}
-                    className={`transition-colors cursor-pointer group hover:bg-slate-50 rounded-2xl ${selectedNode === node.id && viewMode === 'spesifik' ? 'bg-[#F8FAFC]' : ''}`}
-                  >
-                    <td className="px-6 py-5 border-b border-slate-50">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+                {nodes.map((node) => {
+                  let statusVisual = 'NORMAL';
+                  if (!node.is_online) statusVisual = 'OFFLINE';
+                  else if (node.status === 'BAHAYA' || node.has_anomaly) statusVisual = 'BAHAYA';
+
+                  return (
+                    <tr 
+                      key={node.node_id} 
+                      onClick={() => {
+                        setViewMode('spesifik');
+                        setSelectedNode(node.node_id);
+                      }}
+                      className={`transition-colors cursor-pointer group hover:bg-slate-50 rounded-2xl ${selectedNode === node.node_id && viewMode === 'spesifik' ? 'bg-[#F8FAFC]' : ''}`}
+                    >
+                      <td className="px-6 py-5 border-b border-slate-50">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+                          </div>
+                          <span className="font-mono text-slate-500 uppercase">{node.node_id?.substring(0, 8) || "N/A"}</span>
                         </div>
-                        <span className="font-mono text-slate-500">{node.id.substring(0, 8)}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-5 border-b border-slate-50 text-slate-800 font-bold">{node.location_block}</td>
-                    <td className="px-6 py-5 border-b border-slate-50 text-slate-400">
-                      {node.last_sync ? new Date(node.last_sync).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'}) : 'Menunggu...'}
-                    </td>
-                    <td className="px-6 py-5 border-b border-slate-50 text-right">
-                      <div className="flex items-center justify-end gap-4">
-                        {node.status === 'BAHAYA' && (
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); handleResolveIncident(node.id); }}
-                            className="px-4 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs font-bold rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                      </td>
+                      <td className="px-6 py-5 border-b border-slate-50 text-slate-800 font-bold">{node.location_block}</td>
+                      <td className="px-6 py-5 border-b border-slate-50 text-slate-400">
+                        {node.last_sync ? new Date(node.last_sync).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'}) : 'Menunggu...'}
+                      </td>
+                      <td className="px-6 py-5 border-b border-slate-50 text-right">
+                        <div className="flex items-center justify-end gap-4">
+                          {statusVisual === 'BAHAYA' && (
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleResolveIncident(node.anomaly_id || node.node_id); }}
+                              className="px-4 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs font-bold rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                            >
+                              Tandai Selesai
+                            </button>
+                          )}
+                          <span className={`px-4 py-1.5 text-xs font-bold rounded-full flex items-center gap-1.5 
+                            ${statusVisual === 'NORMAL' ? 'bg-emerald-50 text-emerald-600' : 
+                              statusVisual === 'OFFLINE' ? 'bg-slate-100 text-slate-500' : 
+                              'bg-red-50 text-red-600'}`}
                           >
-                            Tandai Selesai
-                          </button>
-                        )}
-                        <span className={`px-4 py-1.5 text-xs font-bold rounded-full flex items-center gap-1.5 ${node.status === 'NORMAL' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${node.status === 'NORMAL' ? 'bg-emerald-500' : 'bg-red-500 animate-pulse'}`}></span>
-                          {node.status === 'NORMAL' ? 'Aman' : 'Kebocoran'}
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                            <span className={`w-1.5 h-1.5 rounded-full 
+                              ${statusVisual === 'NORMAL' ? 'bg-emerald-500' : 
+                                statusVisual === 'OFFLINE' ? 'bg-slate-400' : 
+                                'bg-red-500 animate-pulse'}`}
+                            ></span>
+                            {statusVisual === 'NORMAL' ? 'Aman' : statusVisual === 'OFFLINE' ? 'Terputus' : 'Kebocoran'}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

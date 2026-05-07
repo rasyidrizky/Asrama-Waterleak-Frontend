@@ -28,25 +28,39 @@ const AuditLog = () => {
   }, []);
 
   const currentMonthLogs = logs.filter(log => {
-    const logDate = new Date(log.created_at || log.waktu_mulai);
+    const logDate = new Date(log.start_time);
     const now = new Date();
     return logDate.getMonth() === now.getMonth() && logDate.getFullYear() === now.getFullYear();
   });
 
   const totalKejadian = currentMonthLogs.length; 
-  const estimasiAirTerbuang = currentMonthLogs.reduce((sum, log) => sum + (Number(log.estimasi_volume) || 0), 0);
-  const totalDurasi = currentMonthLogs.reduce((sum, log) => sum + (Number(log.durasi_menit) || 0), 0);
-  const rataRataDurasi = totalKejadian > 0 ? (totalDurasi / totalKejadian).toFixed(1) : 0;
+  
+  let totalDurasiMenit = 0;
+  let totalSelesai = 0;
 
-  const uniqueLocations = Array.from(new Set(logs.map(log => log.location_block).filter(Boolean)));
+  currentMonthLogs.forEach(log => {
+      if (log.start_time && log.end_time) {
+          const durasi = (new Date(log.end_time) - new Date(log.start_time)) / 60000; // dalam menit
+          totalDurasiMenit += durasi;
+          totalSelesai++;
+      }
+  });
+
+  const rataRataDurasi = totalSelesai > 0 ? (totalDurasiMenit / totalSelesai).toFixed(1) : 0;
+  const estimasiAirTerbuang = (totalDurasiMenit * 15).toFixed(0); 
+
+  const uniqueLocations = Array.from(new Set(logs.map(log => log.nodes?.location_block).filter(Boolean)));
 
   const filteredLogs = logs.filter(log => {
-    const matchLocation = locationFilter === 'Semua' || log.location_block === locationFilter;
-    const matchStatus = statusFilter === 'Semua' || log.status === statusFilter;
+    const logLocation = log.nodes?.location_block;
+    const matchLocation = locationFilter === 'Semua' || logLocation === locationFilter;
+    
+    const statusText = log.is_resolved ? 'Selesai' : 'Aktif';
+    const matchStatus = statusFilter === 'Semua' || statusText === statusFilter;
 
     let matchDate = true;
     if (startDate && endDate) {
-      const logDate = new Date(log.created_at || log.waktu_mulai).getTime();
+      const logDate = new Date(log.start_time).getTime();
       const start = new Date(startDate).getTime();
       const end = new Date(endDate).getTime() + 86400000; 
       matchDate = logDate >= start && logDate <= end;
@@ -61,13 +75,16 @@ const AuditLog = () => {
       return;
     }
 
-    let csvContent = "ID Log,Waktu Mulai,Waktu Berakhir,Lokasi,Durasi (mnt),Rata-rata Debit (L/m),Status\n";
+    let csvContent = "ID Anomali,Waktu Mulai,Waktu Selesai,Lokasi,Durasi (mnt),Skor AI,Status,Penyelesai\n";
 
     filteredLogs.forEach(log => {
-      const waktuMulai = log.waktu_mulai ? new Date(log.waktu_mulai).toLocaleString('id-ID').replace(',', '') : '-';
-      const waktuBerakhir = log.waktu_berakhir ? new Date(log.waktu_berakhir).toLocaleString('id-ID').replace(',', '') : '-';
+      const waktuMulai = log.start_time ? new Date(log.start_time).toLocaleString('id-ID').replace(',', '') : '-';
+      const waktuSelesai = log.end_time ? new Date(log.end_time).toLocaleString('id-ID').replace(',', '') : '-';
+      const durasi = (log.start_time && log.end_time) ? Math.round((new Date(log.end_time) - new Date(log.start_time)) / 60000) : '-';
+      const status = log.is_resolved ? 'Selesai' : 'Aktif';
+      const penyelesai = log.incident_logs?.[0]?.users?.email || 'N/A';
       
-      csvContent += `${log.id},${waktuMulai},${waktuBerakhir},${log.location_block},${log.durasi_menit || '-'},${log.debit_air || '-'},${log.status}\n`;
+      csvContent += `${log.anomaly_id},${waktuMulai},${waktuSelesai},${log.nodes?.location_block},${durasi},${log.ai_score || '-'},${status},${penyelesai}\n`;
     });
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -89,7 +106,7 @@ const AuditLog = () => {
         <header className="mb-10 flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Log Riwayat & Audit Kebocoran</h1>
-            <p className="text-slate-400 mt-1 text-sm font-medium">Basis data historis anomali tervalidasi - Audit operasional & kalkulasi Non-Revenue Water.</p>
+            <p className="text-slate-400 mt-1 text-sm font-medium">Basis data historis anomali tervalidasi - Audit operasional & resolusi insiden.</p>
           </div>
         </header>
 
@@ -112,7 +129,7 @@ const AuditLog = () => {
               <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
               </div>
-              <h3 className="text-slate-400 text-sm font-semibold">Total Insiden</h3>
+              <h3 className="text-slate-400 text-sm font-semibold">Total Insiden (Bulan Ini)</h3>
             </div>
             <div className="flex items-end gap-2">
               <p className="text-4xl font-bold text-slate-800">{totalKejadian}</p>
@@ -125,7 +142,7 @@ const AuditLog = () => {
               <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-500">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
               </div>
-              <h3 className="text-slate-400 text-sm font-semibold">Rata-rata Durasi</h3>
+              <h3 className="text-slate-400 text-sm font-semibold">Rata-rata Penanganan</h3>
             </div>
             <div className="flex items-end gap-2">
               <p className="text-4xl font-bold text-slate-800">{rataRataDurasi}</p>
@@ -176,9 +193,8 @@ const AuditLog = () => {
                   className="appearance-none pl-4 pr-10 py-2.5 border border-slate-200 rounded-full text-sm font-medium text-slate-600 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer transition-all"
                 >
                   <option value="Semua">Semua Status</option>
-                  <option value="Tervalidasi">Tervalidasi</option>
-                  <option value="Selesai">Selesai</option>
-                  <option value="Ditinjau">Ditinjau</option>
+                  <option value="Aktif">Aktif (Kritis)</option>
+                  <option value="Selesai">Selesai Ditangani</option>
                 </select>
                 <svg className="w-4 h-4 text-slate-400 absolute right-4 top-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
               </div>
@@ -201,8 +217,8 @@ const AuditLog = () => {
                   <th className="px-6 py-4 border-b border-slate-50">Waktu Mulai</th>
                   <th className="px-6 py-4 border-b border-slate-50">Waktu Berakhir</th>
                   <th className="px-6 py-4 border-b border-slate-50">Lokasi</th>
-                  <th className="px-6 py-4 border-b border-slate-50">Durasi</th>
-                  <th className="px-6 py-4 border-b border-slate-50">Debit (Avg)</th>
+                  <th className="px-6 py-4 border-b border-slate-50">Durasi (Mnt)</th>
+                  <th className="px-6 py-4 border-b border-slate-50">Catatan Teknisi</th>
                   <th className="px-6 py-4 border-b border-slate-50 text-right">Status</th>
                 </tr>
               </thead>
@@ -212,38 +228,52 @@ const AuditLog = () => {
                     <td colSpan="7" className="p-12 text-center text-slate-400">Menarik arsip log...</td>
                   </tr>
                 ) : filteredLogs.length > 0 ? (
-                  filteredLogs.map((log, index) => (
-                    <tr key={log.id} className="hover:bg-slate-50 transition-colors group rounded-2xl cursor-default">
-                      <td className="px-6 py-5 border-b border-slate-50 font-mono text-xs text-slate-400">
-                        {(index + 1).toString().padStart(3, '0')}
-                      </td>
-                      <td className="px-6 py-5 border-b border-slate-50 text-slate-800">
-                        {log.waktu_mulai ? new Date(log.waktu_mulai).toLocaleString('id-ID', {day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'}) : new Date(log.created_at).toLocaleString('id-ID', {day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'})}
-                      </td>
-                      <td className="px-6 py-5 border-b border-slate-50 text-slate-500">
-                        {log.waktu_berakhir ? new Date(log.waktu_berakhir).toLocaleString('id-ID', {day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'}) : '-'}
-                      </td>
-                      <td className="px-6 py-5 border-b border-slate-50 font-bold text-slate-700">{log.location_block}</td>
-                      <td className="px-6 py-5 border-b border-slate-50 font-mono text-xs">
-                        {log.durasi_menit ? <span className="bg-slate-100 text-slate-500 px-2 py-1 rounded-md">{log.durasi_menit} mnt</span> : <span className="text-slate-300">-</span>}
-                      </td>
-                      <td className="px-6 py-5 border-b border-slate-50 font-mono text-xs text-red-500 font-bold">
-                        {log.debit_air ? `${log.debit_air} L/m` : '-'}
-                      </td>
-                      <td className="px-6 py-5 border-b border-slate-50 text-right">
-                        <div className="flex justify-end">
-                          <span className={`px-4 py-1.5 text-[11px] font-bold rounded-full uppercase flex items-center gap-1.5 w-max
-                            ${log.status === 'Tervalidasi' ? 'bg-red-50 text-red-600' : 
-                              log.status === 'Ditinjau' ? 'bg-orange-50 text-orange-600' : 
-                              'bg-emerald-50 text-emerald-600'}`}
-                          >
-                            <span className={`w-1.5 h-1.5 rounded-full ${log.status === 'Tervalidasi' ? 'bg-red-500' : log.status === 'Ditinjau' ? 'bg-orange-500' : 'bg-emerald-500'}`}></span>
-                            {log.status || 'Selesai'}
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                  filteredLogs.map((log, index) => {
+                    const isResolved = log.is_resolved;
+                    const durasi = (log.start_time && log.end_time) ? Math.round((new Date(log.end_time) - new Date(log.start_time)) / 60000) : null;
+                    const teknisiEmail = log.incident_logs?.[0]?.users?.email;
+                    const catatan = log.incident_logs?.[0]?.action_description;
+
+                    return (
+                      <tr key={log.anomaly_id} className="hover:bg-slate-50 transition-colors group rounded-2xl cursor-default">
+                        <td className="px-6 py-5 border-b border-slate-50 font-mono text-xs text-slate-400">
+                          {(index + 1).toString().padStart(3, '0')}
+                        </td>
+                        <td className="px-6 py-5 border-b border-slate-50 text-slate-800">
+                          {log.start_time ? new Date(log.start_time).toLocaleString('id-ID', {day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'}) : '-'}
+                        </td>
+                        <td className="px-6 py-5 border-b border-slate-50 text-slate-500">
+                          {log.end_time ? new Date(log.end_time).toLocaleString('id-ID', {day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'}) : '-'}
+                        </td>
+                        <td className="px-6 py-5 border-b border-slate-50 font-bold text-slate-700">
+                          {log.nodes?.location_block || 'Tidak Diketahui'}
+                        </td>
+                        <td className="px-6 py-5 border-b border-slate-50 font-mono text-xs">
+                          {durasi !== null ? <span className="bg-slate-100 text-slate-500 px-2 py-1 rounded-md">{durasi} mnt</span> : <span className="text-slate-300">-</span>}
+                        </td>
+                        <td className="px-6 py-5 border-b border-slate-50 text-xs">
+                          {catatan ? (
+                            <div>
+                              <span className="block text-slate-600 font-medium">{catatan}</span>
+                              <span className="block text-slate-400 italic mt-0.5">Oleh: {teknisiEmail?.split('@')[0]}</span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-300 italic">Belum ditangani</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-5 border-b border-slate-50 text-right">
+                          <div className="flex justify-end">
+                            <span className={`px-4 py-1.5 text-[11px] font-bold rounded-full uppercase flex items-center gap-1.5 w-max
+                              ${!isResolved ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full ${!isResolved ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`}></span>
+                              {!isResolved ? 'Aktif' : 'Selesai'}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
                     <td colSpan="7" className="p-16 text-center text-slate-500">
