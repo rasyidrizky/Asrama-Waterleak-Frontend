@@ -5,10 +5,7 @@ import {
 
 const TelemetryChart = ({ data, viewMode, nodesData = [] }) => {
   const chartData = data.map(item => {
-    const timeString = item.timeISO 
-      ? new Date(item.timeISO).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-      : item.time; 
-      
+    const timeString = item.timeISO ? item.timeISO : item.time; 
     return {
       ...item,
       displayTime: timeString

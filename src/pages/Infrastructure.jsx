@@ -162,7 +162,7 @@ const Infrastructure = () => {
                       </td>
                       
                       <td className="px-6 py-5 border-b border-slate-50 text-slate-400">
-                        {node.last_sync ? new Date(node.last_sync).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit', second:'2-digit'}) : '-'}
+                        {node.last_sync ? new Date(node.last_sync).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute:'2-digit', second:'2-digit'}) : '-'}
                       </td>
                       
                       <td className="px-6 py-5 border-b border-slate-50 text-right">

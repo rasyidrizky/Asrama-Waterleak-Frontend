@@ -138,7 +138,7 @@ const ExecutiveInfrastructure = () => {
                   recentAnomalies.map((log) => {
                     const isResolved = log.is_resolved;
                     const durasi = (log.start_time && log.end_time) ? Math.round((new Date(log.end_time) - new Date(log.start_time)) / 60000) : null;
-                    const formattedDate = new Date(log.start_time).toLocaleString('id-ID', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'});
+                    const formattedDate = new Date(log.start_time).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'});
 
                     return (
                       <div key={log.anomaly_id} className={`flex items-center justify-between p-5 rounded-[1.25rem] border shadow-[0_2px_10px_-3px_rgba(0,0,0,0.02)] transition-all group

@@ -78,8 +78,8 @@ const AuditLog = () => {
     let csvContent = "ID Anomali,Waktu Mulai,Waktu Selesai,Lokasi,Durasi (mnt),Skor AI,Status,Penyelesai\n";
 
     filteredLogs.forEach(log => {
-      const waktuMulai = log.start_time ? new Date(log.start_time).toLocaleString('id-ID').replace(',', '') : '-';
-      const waktuSelesai = log.end_time ? new Date(log.end_time).toLocaleString('id-ID').replace(',', '') : '-';
+      const waktuMulai = log.start_time ? new Date(log.start_time).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }).replace(',', '') : '-';
+      const waktuSelesai = log.end_time ? new Date(log.end_time).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }).replace(',', '') : '-';
       const durasi = (log.start_time && log.end_time) ? Math.round((new Date(log.end_time) - new Date(log.start_time)) / 60000) : '-';
       const status = log.is_resolved ? 'Selesai' : 'Aktif';
       const penyelesai = log.incident_logs?.[0]?.users?.email || 'N/A';
@@ -240,10 +240,10 @@ const AuditLog = () => {
                           {(index + 1).toString().padStart(3, '0')}
                         </td>
                         <td className="px-6 py-5 border-b border-slate-50 text-slate-800">
-                          {log.start_time ? new Date(log.start_time).toLocaleString('id-ID', {day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'}) : '-'}
+                          {log.start_time ? new Date(log.start_time).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'}) : '-'}
                         </td>
                         <td className="px-6 py-5 border-b border-slate-50 text-slate-500">
-                          {log.end_time ? new Date(log.end_time).toLocaleString('id-ID', {day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'}) : '-'}
+                          {log.end_time ? new Date(log.end_time).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'}) : '-'}
                         </td>
                         <td className="px-6 py-5 border-b border-slate-50 font-bold text-slate-700">
                           {log.nodes?.location_block || 'Tidak Diketahui'}

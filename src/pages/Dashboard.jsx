@@ -49,12 +49,16 @@ const Dashboard = () => {
     if (selectedNode) fetchTelemetryData(selectedNode);
   }, [selectedNode, viewMode]); 
 
-  const handleResolveIncident = async (anomalyId) => {
-    const isConfirmed = window.confirm("Apakah insiden perbaikan sudah diselesaikan di lapangan?");
-    if (!isConfirmed) return;
+const handleResolveIncident = async (anomalyId) => {
+    const catatanTeknisi = window.prompt(
+      "Insiden ini akan ditandai selesai. Silakan masukkan catatan perbaikan (opsional):", 
+      "Perbaikan fisik selesai dilakukan."
+    );
+
+    if (catatanTeknisi === null) return;
 
     try {
-      await api.put(`/web/resolve/${anomalyId}`, { action_description: "Diselesaikan via Dashboard" });
+      await api.put(`/web/resolve/${anomalyId}`, { action_description: catatanTeknisi });
       alert("Status dikembalikan menjadi NORMAL. Log insiden ditutup.");
       fetchNodes(); 
     } catch (error) {

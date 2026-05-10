@@ -8,52 +8,70 @@ const ProtectedRoute = ({ children, allowedRole }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true; 
+
     const checkSessionAndRole = async () => {
       try {
+        // 1. Tarik sesi dari local storage (Offline, tidak akan hang)
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
-
-        setSession(session);
-
-        if (session) {
-          const { data: userProfile, error: profileError } = await supabase
-            .from('users')
-            .select('role')
-            .eq('user_id', session.user.id)
-            .single();
-
-          if (!profileError && userProfile) {
-            setRole(userProfile.role);
-          }
+        
+        if (sessionError || !session) {
+            throw new Error("Sesi kosong atau kadaluwarsa");
         }
+
+        // 2. Tarik data jabatan (Online)
+        const { data: userProfile, error: profileError } = await supabase
+          .from('users')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .single();
+
+        if (profileError) throw profileError;
+
+        if (isMounted) {
+          setSession(session);
+          setRole(userProfile.role);
+        }
+
       } catch (error) {
-        console.error("Pengecekan otorisasi terganggu:", error.message);
-        setSession(null); 
+        console.warn("Autentikasi ditolak:", error.message);
+        
+        // KUNCI SOLUSI FINAL: 
+        // Jangan gunakan 'await' di sini. Biarkan pembersihan berjalan di latar belakang
+        // sehingga layar tidak akan pernah stuck menunggu balasan server.
+        supabase.auth.signOut().catch(() => {}); 
+        
+        if (isMounted) {
+            setSession(null);
+            setRole(null);
+        }
       } finally {
-        setLoading(false); 
+        // Karena tidak ada await yang menahan, ini PASTI tereksekusi
+        if (isMounted) setLoading(false); 
       }
     };
 
     checkSessionAndRole();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      if (session) {
-        const { data: userProfile } = await supabase
-          .from('users')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .single();
-        setRole(userProfile?.role);
-      } else {
+    // Listener hanya untuk menangkap event jika user menekan tombol Logout manual
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT' && isMounted) {
+        setSession(null);
         setRole(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
+  // ==========================================
+  // RENDER UI
+  // ==========================================
+  
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#F8F9FA]">
@@ -67,23 +85,23 @@ const ProtectedRoute = ({ children, allowedRole }) => {
   }
 
   if (allowedRole && role !== allowedRole) {
-    
     if (role === 'Pengelola') {
       return <Navigate to="/executive" replace />;
     } else if (role === 'Teknisi') {
       return <Navigate to="/" replace />;
-    } 
-    
-    else {
+    } else {
       return (
         <div className="flex flex-col h-screen items-center justify-center bg-[#F8F9FA] text-center px-4">
            <h1 className="text-3xl font-bold text-red-600 mb-2">Akses Ditolak (403)</h1>
            <p className="text-gray-600 mb-6 max-w-md">
              Akun Anda berhasil login, tetapi belum didaftarkan ke dalam sistem otorisasi asrama. 
-             Silakan hubungi Administrator untuk meminta hak akses.
            </p>
            <button 
-             onClick={() => supabase.auth.signOut()} 
+             onClick={() => {
+               setLoading(true);
+               // Di sini kita pakai await karena ini aksi manual dari tombol
+               supabase.auth.signOut().finally(() => setLoading(false));
+             }} 
              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition"
            >
              Kembali ke Login
